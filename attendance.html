@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Submit Missed Attendance</title>
+<style>
+body{
+  background:#0b0f1a;
+  color:white;
+  font-family:Arial;
+}
+.box{
+  background:#111a2e;
+  padding:20px;
+  margin:20px;
+  border-radius:12px;
+}
+input,textarea{
+  width:100%;
+  padding:8px;
+  border-radius:8px;
+  border:none;
+}
+.checkbox-group{
+  margin-top:10px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:15px;
+}
+.checkbox-group label{
+  display:flex;
+  align-items:center;
+  width:auto;
+}
+.checkbox-group input[type="checkbox"]{
+  width:auto;
+  margin-right:8px;
+  margin-top:0;
+}
+.tick {
+  display:none;
+  font-size:18px;
+  margin-left:5px;
+  color:#4CAF50;
+}
+.checkbox-group input[type="checkbox"]:checked ~ .lecture-label + .tick {
+  display:inline;
+}
+button{
+  padding:10px 20px;
+  border:none;
+  border-radius:8px;
+  margin-top:10px;
+}
+</style>
+</head>
+<body>
+
+<div class="box">
+<h2>Missed Attendance Submission</h2>
+<p id="dt"></p>
+
+<label>Name</label>
+<input id="name">
+
+<label>Roll No</label>
+<input id="roll">
+
+<label>Class</label>
+<input id="class">
+<select id="class">
+  
+  <option value="1st BSc">1st BSc</option>
+  <option value="2nd BSc">2nd BSc</option>
+  <option value="3rd BSc">3rd BSc</option>
+  <option value="1st BCA">1st BCA</option>
+  <option value="2nd BCA">2nd BCA</option>
+  <option value="3rd BCA">3rd BCA</option>
+  <option value="1st BBA">1st BBA</option>
+  <option value="2nd BBA">2nd BBA</option>
+  <option value="3rd BBA">3rd BBA</option>
+  <option value="1st BCom">1st BCom</option>
+  <option value="2nd BCom">2nd BCom</option>
+  <option value="3rd BCom">3rd BCom</option>
+  <option value="1st BA">1st BA</option>
+  <option value="2nd BA">2nd BA</option>
+  <option value="3rd BA">3rd BA</option>
+  <option value="Class 11">Class 11</option>
+  <option value="Class 12">Class 12</option>
+</select>
+
+<label>NCC Event</label>
+<select id="event">
+  <option value="">-- Select Event --</option>
+</select>
+
+<label>Missed Lecture(s)</label>
+<div class="checkbox-group">
+  <label><input type="checkbox" name="missed" value="L1" onchange="updateCheckmark(this)"> <span class="lecture-label">L1</span> <span class="tick"></span></label>
+  <label><input type="checkbox" name="missed" value="L2" onchange="updateCheckmark(this)"> <span class="lecture-label">L2</span> <span class="tick"></span></label>
+  <label><input type="checkbox" name="missed" value="L3" onchange="updateCheckmark(this)"> <span class="lecture-label">L3</span> <span class="tick"></span></label>
+  <label><input type="checkbox" name="missed" value="L4" onchange="updateCheckmark(this)"> <span class="lecture-label">L4</span> <span class="tick"></span></label>
+  <label><input type="checkbox" name="missed" value="L5" onchange="updateCheckmark(this)"> <span class="lecture-label">L5</span> <span class="tick"></span></label>
+  <label><input type="checkbox" name="missed" value="L6" onchange="updateCheckmark(this)"> <span class="lecture-label">L6</span> <span class="tick"></span></label>
+  <label><input type="checkbox" name="missed" value="L7" onchange="updateCheckmark(this)"> <span class="lecture-label">L7</span> <span class="tick"></span></label>
+</div>
+
+<label>Reason for absence</label>
+<textarea id="reason"></textarea>
+
+<button onclick="submitData()">Submit</button>
+<p id="msg"></p>
+</div>
+
+<script>
+const API = "https://script.google.com/macros/s/AKfycbxL2SpCe-tlLnievmOccAVZwjxPbTczZsqupwCFZAZDCeVeeVd9kq11ExnFerE6xmkp/exec";
+
+const url = new URLSearchParams(window.location.search);
+const date = url.get("date");
+document.getElementById("dt").innerText = "Date : " + date;
+
+// Load events for this date
+async function loadEvents(){
+  try {
+    let res = await fetch(API+"?action=getEvents&date="+encodeURIComponent(date), { mode: 'cors', headers: { 'Accept': 'application/json' } });
+    if (!res.ok) throw new Error('Failed to load events');
+    let text = await res.text();
+    let data = JSON.parse(text);
+    
+    let eventSelect = document.getElementById("event");
+    eventSelect.innerHTML = '<option value="">-- Select Event --</option>';
+    
+    if (data.events) {
+      let events = data.events.split('|');
+      events.forEach(event => {
+        let option = document.createElement('option');
+        option.value = event.trim();
+        option.text = event.trim();
+        eventSelect.appendChild(option);
+      });
+    }
+  } catch(error) {
+    console.error('Failed to load events:', error);
+  }
+}
+
+// Load events on page load
+loadEvents();
+
+function updateCheckmark(checkbox) {
+  // Find the tick span in the same label
+  let tick = checkbox.parentElement.querySelector('.tick');
+  if (checkbox.checked) {
+    tick.innerText = '✓';
+  } else {
+    tick.innerText = '';
+  }
+}
+
+async function submitData(){
+  let name = document.getElementById("name").value;
+  let roll = document.getElementById("roll").value;
+  let cls = document.getElementById("class").value;
+  let event = document.getElementById("event").value;
+  let reason = document.getElementById("reason").value;
+  
+  if(!event){
+    document.getElementById("msg").innerText = "Please select an event";
+    return;
+  }
+  
+  // Get checked lectures
+  let missedLectures = [];
+  let checkboxes = document.querySelectorAll('input[name="missed"]:checked');
+  checkboxes.forEach(cb => {
+    missedLectures.push(cb.value);
+  });
+  let missed = missedLectures.join(', ');
+
+  let apiUrl = `${API}?action=submitAttendance&date=${encodeURIComponent(date)}&name=${encodeURIComponent(name)}&roll=${encodeURIComponent(roll)}&className=${encodeURIComponent(cls)}&event=${encodeURIComponent(event)}&L1=${encodeURIComponent(missedLectures.includes('L1') ? '✓' : '')}&L2=${encodeURIComponent(missedLectures.includes('L2') ? '✓' : '')}&L3=${encodeURIComponent(missedLectures.includes('L3') ? '✓' : '')}&L4=${encodeURIComponent(missedLectures.includes('L4') ? '✓' : '')}&L5=${encodeURIComponent(missedLectures.includes('L5') ? '✓' : '')}&L6=${encodeURIComponent(missedLectures.includes('L6') ? '✓' : '')}&L7=${encodeURIComponent(missedLectures.includes('L7') ? '✓' : '')}&reason=${encodeURIComponent(reason)}`;
+
+  try {
+    console.log('Submitting attendance to:', apiUrl);
+    let res = await fetch(apiUrl, { mode: 'cors', headers: { 'Accept': 'application/json' } });
+    let text = await res.text();
+    console.log('Submit response text:', text);
+    let data;
+    try { data = JSON.parse(text); } catch(e) { data = null; }
+
+    if (res.ok && data && data.status === 'success') {
+      document.getElementById("msg").innerText = "Submitted Successfully";
+    } else {
+      let errMsg = data && data.message ? data.message : (res.statusText || 'Failed to submit');
+      document.getElementById("msg").innerText = "Error: " + errMsg;
+      console.error('Submit failed:', res.status, errMsg, data);
+    }
+  } catch (error) {
+    document.getElementById("msg").innerText = "Network/Error: " + error.message;
+    console.error('Fetch error:', error);
+  }
+}
+</script>
+
+</body>
+</html>

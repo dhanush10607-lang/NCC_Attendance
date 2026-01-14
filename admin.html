@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Admin – Add Attendance Date</title>
+<style>
+body{
+  background:#0b0f1a;
+  color:white;
+  font-family:Arial;
+}
+.container{
+  background:#111a2e;
+  padding:20px;
+  margin:20px;
+  border-radius:12px;
+}
+input,textarea{
+  width:100%;
+  padding:8px;
+  border-radius:8px;
+  border:none;
+  margin-top:5px;
+}
+button{
+  padding:10px 20px;
+  border:none;
+  border-radius:8px;
+  margin-top:10px;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+<h2>Add Attendance Date</h2>
+
+<label>Date</label>
+<input type="date" id="date">
+
+<label>NCC Events (Add one per line)</label>
+<textarea id="events" placeholder="Event 1&#10;Event 2&#10;Event 3"></textarea>
+
+<button onclick="save()">Save</button>
+
+<p id="msg"></p>
+</div>
+
+<script>
+const API = "https://script.google.com/macros/s/AKfycbxL2SpCe-tlLnievmOccAVZwjxPbTczZsqupwCFZAZDCeVeeVd9kq11ExnFerE6xmkp/exec";
+
+async function save(){
+  let date = document.getElementById("date").value;
+  let eventsText = document.getElementById("events").value;
+
+  if(!date){
+    document.getElementById("msg").innerText = "Please select a date";
+    return;
+  }
+
+  // Parse events (one per line)
+  let events = eventsText.split('\n').map(e => e.trim()).filter(e => e !== '');
+  
+  if(events.length === 0){
+    document.getElementById("msg").innerText = "Please add at least one event";
+    return;
+  }
+
+  try {
+    let url = `${API}?action=addDate&date=${date}&events=${encodeURIComponent(events.join('|'))}`;
+    console.log('Sending request to:', url);
+
+    let res = await fetch(url, { mode: 'cors', headers: { 'Accept': 'application/json' } });
+    console.log('Raw response:', res);
+
+    let text = await res.text();
+    console.log('Response text:', text);
+
+    let data;
+    try { data = JSON.parse(text); } catch(e) { data = null; }
+
+    if (res.ok && data && data.status === 'success') {
+      document.getElementById("msg").innerText = "Date and Events Added Successfully";
+      document.getElementById("date").value = "";
+      document.getElementById("events").value = "";
+    } else {
+      let errMsg = data && data.message ? data.message : (res.statusText || 'Failed to save');
+      document.getElementById("msg").innerText = "Error: " + errMsg;
+      console.error('Save failed:', res.status, errMsg, data);
+    }
+  } catch(error) {
+    document.getElementById("msg").innerText = "Network/Error: " + error.message;
+    console.error('Fetch error:', error);
+  }
+}
+</script>
+
+</body>
+</html>

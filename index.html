@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>NCC Missed Attendance</title>
+<style>
+body{
+  background:#0b0f1a;
+  color:white;
+  font-family:Arial;
+  margin:0;
+}
+header{
+  display:flex;
+  align-items:center;
+  padding:10px 20px;
+  background:#081126;
+}
+header img{
+  height:55px;
+  margin-right:10px;
+}
+.card{
+  background:#111a2e;
+  padding:15px;
+  margin:15px;
+  border-radius:12px;
+  cursor:pointer;
+}
+.card:hover{
+  background:#162345;
+}
+.card h3{
+  margin:0 0 10px 0;
+  font-size:22px;
+}
+.card p{
+  margin:0;
+  font-size:14px;
+  color:#b0b8c8;
+}
+.events-list{
+  margin-top:8px;
+  padding-top:8px;
+  border-top:1px solid #b0b8c8;
+}
+.event-item{
+  font-size:12px;
+  color:#9ca3af;
+  margin:4px 0;
+  padding:4px 0;
+}
+h2{margin-left:15px;}
+</style>
+</head>
+<body>
+
+<header>
+<img src="logo.jpg">
+<h1>NCC Missed Attendance Portal</h1>
+</header>
+
+<h2>Select Date</h2>
+<div id="dates"></div>
+
+<script>
+const API = "https://script.google.com/macros/s/AKfycbxL2SpCe-tlLnievmOccAVZwjxPbTczZsqupwCFZAZDCeVeeVd9kq11ExnFerE6xmkp/exec";
+
+async function loadDates(){
+  try {
+    console.log('Loading dates from API');
+    let res = await fetch(API+"?action=getDates", { mode: 'cors', headers: { 'Accept': 'application/json' } });
+    if (!res.ok) throw new Error('Network response was not ok: ' + res.status);
+    let text = await res.text();
+    console.log('Response text:', text);
+    
+    let data = JSON.parse(text);
+    console.log('Parsed data:', data);
+
+    let box = document.getElementById("dates");
+    box.innerHTML = "";
+
+    if (Array.isArray(data) && data.length > 0) {
+      data.forEach(d=>{
+        let eventsHtml = '';
+        if (d.events) {
+          let eventsList = d.events.split('|');
+          eventsHtml = '<div class="events-list">';
+          eventsList.forEach(event => {
+            eventsHtml += `<div class="event-item">• ${event.trim()}</div>`;
+          });
+          eventsHtml += '</div>';
+        }
+        
+        box.innerHTML += `
+        <div class="card" onclick="openDate('${d.date}')">
+          <h3>${d.date}</h3>
+          ${eventsHtml}
+        </div>
+      `;
+      });
+    } else {
+      box.innerHTML = '<p>No dates available</p>';
+    }
+  } catch (error) {
+    console.error('Failed to load dates:', error);
+    document.getElementById('dates').innerText = 'Failed to load dates: ' + error.message;
+  }
+}
+function openDate(date){
+  window.location.href = "attendance.html?date="+encodeURIComponent(date);
+}
+loadDates();
+</script>
+
+</body>
+</html>
